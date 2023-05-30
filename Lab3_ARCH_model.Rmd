@@ -1,0 +1,96 @@
+---
+title: "ARCH_Model_Lab3"
+author: "Kelvin Nyongesa"
+date: "2023-05-30"
+output: html_document
+---
+
+Import the libraries
+```{r}
+library(readxl)
+library(rugarch)
+```
+
+Loading the Data 
+```{r}
+cbkdata<-read_excel("C:/Users/DELL LATITUDE E7270/Documents/4.1/FTSA/FTSA_LEC_LAB/investingcom.csv.xlsx")
+head(cbkdata)
+```
+
+
+Converting the data into univariate
+```{r}
+library(tidyverse)
+
+# Convert date variable to Date class
+cbkdata$Date <- as.Date(cbkdata$Date, format = "%m/%d/%Y")
+
+# Create a new data frame to store the log returns
+
+log_returns <- data.frame(
+  Returns = c(
+    diff(log(cbkdata$USD)),
+    diff(log(cbkdata$POUND)),
+    diff(log(cbkdata$EURO)),
+    diff(log(cbkdata$YEN)),
+    diff(log(cbkdata$RAND))
+  )
+)
+
+# Print the returns data frame
+head(log_returns)
+
+```
+
+
+Is there any serial correlation in the log return series? How do check using ACF and PACF plots and the Ljung-Box statistics?
+```{r}
+# Load required packages
+library(tseries)
+
+# ACF plot
+acf(log_returns)
+
+# PACF plot
+pacf(log_returns)
+
+```
+
+Using the Ljung Box check the serial Correlation
+
+```{r}
+# Perform Ljung-Box test on the log returns
+ljung_box_test <- Box.test(log_returns, lag = 10, type = "Ljung-Box")
+
+# Print the Ljung-Box test results
+print(ljung_box_test)
+
+```
+Based on the extremely small p-value of less than 2.2e-16, we can conclude that there is strong evidence of serial correlation in the log return data. The p-value represents the probability of obtaining the observed test statistic under the null hypothesis of no serial correlation. In this case, the p-value is practically zero, indicating that the observed test statistic is highly unlikely to occur if there is no serial correlation.
+
+Therefore, we reject the null hypothesis of no serial correlation and conclude that there is a significant presence of serial correlation in the log return data.
+
+
+ARCH Effect using Ljung-Box test
+```{r}
+library(forecast)
+
+# Fit an ARCH model to the log returns
+arch_model <- garch(log_returns)
+
+# Obtain the squared residuals
+squared_residuals <- arch_model$residuals^2
+
+# Perform Ljung-Box test on the squared residuals
+ljung_box_test <- Box.test(squared_residuals, lag = 10, type = "Ljung-Box")
+
+# Print the Ljung-Box test results
+print(ljung_box_test)
+```
+
+Based on the p-value of 0.3831 obtained from the Ljung-Box test on the squared residuals, we do not have sufficient evidence to conclude the presence of an ARCH effect in the daily log returns. The p-value is above the typical significance level of 0.05, indicating that we fail to reject the null hypothesis of no ARCH effect.
+
+Therefore, based on the given p-value, we do not have significant evidence to suggest the presence of autocorrelation in the squared residuals and, consequently, no ARCH effect in the daily log returns.
+
+
+
